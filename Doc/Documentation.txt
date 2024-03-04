@@ -1,0 +1,147 @@
+using UnityEngine;
+
+public class DragAndShoot : MonoBehaviour
+{
+    private Rigidbody rb;
+    private Vector3 dragStartPosition;
+    private Vector3 dragEndPosition;
+    private Vector3 shootDirection;
+    private float dragStartTime;
+    private float dragEndTime;
+    private float maxShootSpeed = 10f;
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody>();
+    }
+
+    void OnMouseDown()
+    {
+        rb.useGravity = true;
+        dragStartPosition = Input.mousePosition;
+        dragStartTime = Time.time;
+    }
+
+    void OnMouseUp()
+    {
+        rb.useGravity = true;
+        dragEndPosition = Input.mousePosition;
+        dragEndTime = Time.time;
+
+        CalculateShootDirection();
+        ShootBall();
+    }
+
+    void CalculateShootDirection()
+    {
+        shootDirection = (dragEndPosition - dragStartPosition).normalized;
+    }
+
+    void ShootBall()
+    {
+        rb.useGravity = true;
+        float dragDuration = dragEndTime - dragStartTime;
+        float dragDistance = Vector3.Distance(dragEndPosition, dragStartPosition);
+        float shootSpeed = Mathf.Clamp(dragDistance / dragDuration, 0f, maxShootSpeed);
+
+        rb.AddForce(new Vector3(shootDirection.x * shootSpeed, shootDirection.y * shootSpeed, shootSpeed), ForceMode.Impulse);
+
+        Spawner.instance.NewSpawnTime();
+
+    }
+}
+
+using UnityEngine;
+
+public class Spawner : MonoBehaviour
+{
+    [SerializeField] private Vector3 SpawnerPos;
+    [SerializeField] private GameObject ball;
+    private float SpawnDuration = 2f;
+
+    public static Spawner instance;
+
+    private void Awake()
+    {
+        instance = this;
+    }
+
+    private void Start()
+    {
+        SpawnerPos = transform.position;
+    }
+
+    void SpawnNewObj()
+    {
+        Instantiate(ball, SpawnerPos, Quaternion.identity);
+    }
+
+    public void NewSpawnTime()
+    {
+
+        Invoke("SpawnNewObj", SpawnDuration);
+    }
+}
+
+using UnityEngine;
+
+public class Destroyer : MonoBehaviour
+{
+    void OnCollisionEnter(Collision collision)
+    {
+        if (collision != null)
+        {
+            Destroy(collision.gameObject, 0.5f);
+
+        }
+    }
+
+}
+
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using System.IO;
+
+public class SaveLoadData : MonoBehaviour
+{
+    void Start()
+    {
+        // Создаем данные для сохранения
+        Data dataToSave = new Data { Name = "Alice", Age = 30 };
+
+        // Сохраняем данные в JSON файл
+        SaveDataToJson("data.json", dataToSave);
+
+        // Загружаем данные из JSON файла
+        Data loadedData = ReadDataFromJson("data.json");
+
+        // Выводим загруженные данные в консоль
+        Debug.Log($"Name: {loadedData.Name}, Age: {loadedData.Age}");
+    }
+
+    static void SaveDataToJson(string fileName, Data data)
+    {
+        string json = JsonUtility.ToJson(data);
+        File.WriteAllText(fileName, json);
+
+        Debug.Log($"Data saved to {fileName}");
+    }
+
+    static Data ReadDataFromJson(string fileName)
+    {
+        string json = File.ReadAllText(fileName);
+        return JsonUtility.FromJson<Data>(json);
+    }
+}
+
+[System.Serializable]
+public class Data
+{
+    public string Name;
+    public int Age;
+}
+
+
+
